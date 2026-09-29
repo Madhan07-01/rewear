@@ -1,0 +1,6 @@
+{
+  "name": "ReWear - Circular Fashion & Hyperlocal Rental Marketplace",
+  "description": "Wear the moment. Not the price tag. India-focused hyperlocal circular-fashion marketplace with AI occasion & fit matching, QR handovers, transparent refundable deposits, and digital clothing passports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
