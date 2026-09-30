@@ -22,6 +22,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SellerDashboardPage } from './pages/SellerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AiFitStudioPage } from './pages/AiFitStudioPage';
+import { ReViveHubPage } from './pages/ReViveHubPage';
 import { Product, Order } from './types';
 
 function MainApp() {
@@ -186,6 +187,15 @@ function MainApp() {
         {currentPath === '/profile' && <ProfilePage />}
 
         {currentPath === '/seller' && <SellerDashboardPage />}
+
+        {(currentPath === '/revive' || currentPath.startsWith('/revive')) && (
+          <ReViveHubPage
+            onNavigate={navigateTo}
+            onOpenProductDetail={(prod) => {
+              handleSelectProduct(prod);
+            }}
+          />
+        )}
 
         {currentPath === '/admin' && <AdminDashboardPage />}
       </main>

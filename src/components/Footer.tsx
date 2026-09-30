@@ -74,6 +74,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   AI Style & Fit Match Wizard
                 </button>
               </li>
+              <li>
+                <button onClick={() => onNavigate('/revive')} className="hover:text-white text-[#197B5B] font-medium transition flex items-center gap-1">
+                  <span>♻ ReVive Next-Life Hub</span>
+                </button>
+              </li>
             </ul>
           </div>
 

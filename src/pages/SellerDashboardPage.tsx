@@ -3,6 +3,8 @@ import { Product, Order, ProductCondition } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ReturnInspectionModal } from '../components/ReturnInspectionModal';
 import { DigitalPassportModal } from '../components/DigitalPassportModal';
+import { ReViveModal } from '../components/ReViveModal';
+import { ReViveHubPage } from './ReViveHubPage';
 import {
   Store,
   DollarSign,
@@ -16,17 +18,29 @@ import {
   Award,
   Trash2,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Recycle,
+  Layers,
+  HeartHandshake,
+  Scissors,
+  ArrowRight,
+  TrendingUp,
+  Settings as SettingsIcon,
+  ShoppingBag
 } from 'lucide-react';
 
 export const SellerDashboardPage: React.FC = () => {
   const { currentUser, selectedCity } = useAuth();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeNav, setActiveNav] = useState<
+    'OVERVIEW' | 'INVENTORY' | 'ORDERS' | 'EARNINGS' | 'INSIGHTS' | 'REVIVE' | 'SETTINGS'
+  >('OVERVIEW');
 
   // Modals
   const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
   const [passportProduct, setPassportProduct] = useState<Product | null>(null);
+  const [reviveProduct, setReviveProduct] = useState<Product | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // New Listing Form State
@@ -192,53 +206,168 @@ export const SellerDashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Metrics Row (Strict Separation of Escrow Deposit from Seller Revenue) */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Net Earnings */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
-          <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Net Earnings</span>
-          <span className="font-serif-couture text-2xl font-bold text-[#18212B] block mt-1">
-            ₹{metrics.totalNetEarnings.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[10px] text-[#197B5B] font-semibold">After 12% commission</span>
-        </div>
-
-        {/* Pending Payout */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
-          <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Pending Payout</span>
-          <span className="font-serif-couture text-2xl font-bold text-[#781F37] block mt-1">
-            ₹{metrics.pendingPayout.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[10px] text-stone-500">Scheduled to bank</span>
-        </div>
-
-        {/* Escrow Deposits Held (Liability Warning) */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
-          <span className="text-[10px] uppercase font-bold text-[#C89228] block">Deposits in Escrow</span>
-          <span className="font-serif-couture text-2xl font-bold text-[#C89228] block mt-1">
-            ₹{metrics.depositsHeldInEscrow.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[10px] text-stone-500">Held liability (Not revenue)</span>
-        </div>
-
-        {/* Active Rentals */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
-          <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Active Rentals</span>
-          <span className="font-serif-couture text-2xl font-bold text-[#18212B] block mt-1">
-            {metrics.activeRentalsCount}
-          </span>
-          <span className="text-[10px] text-blue-600 font-semibold">Currently with renters</span>
-        </div>
-
-        {/* Inspection Queue */}
-        <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
-          <span className="text-[10px] uppercase font-bold text-[#781F37] block">Inspection Queue</span>
-          <span className="font-serif-couture text-2xl font-bold text-[#781F37] block mt-1">
-            {metrics.inspectionQueueCount}
-          </span>
-          <span className="text-[10px] text-stone-500">Returns awaiting QC</span>
-        </div>
+      {/* Seller Dashboard Navigation / Tabs */}
+      <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 border-b border-[#E8E1D8]">
+        {[
+          { id: 'OVERVIEW', label: 'Overview', icon: Store },
+          { id: 'INVENTORY', label: 'Inventory', icon: Shirt },
+          { id: 'ORDERS', label: 'Orders', icon: ShoppingBag },
+          { id: 'EARNINGS', label: 'Earnings', icon: DollarSign },
+          { id: 'INSIGHTS', label: 'Insights', icon: TrendingUp },
+          { id: 'REVIVE', label: '♻ ReVive', icon: Recycle, tooltip: 'Repair, donate, upcycle, recycle, or retire clothing.' },
+          { id: 'SETTINGS', label: 'Settings', icon: SettingsIcon }
+        ].map(item => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id as any)}
+              title={item.tooltip}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                activeNav === item.id
+                  ? 'bg-[#18212B] text-white shadow-xs'
+                  : 'bg-white text-stone-600 hover:text-black border border-[#E8E1D8]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{item.label}</span>
+              {item.id === 'REVIVE' && (
+                <span className="w-2 h-2 rounded-full bg-[#197B5B] ml-0.5 animate-pulse" />
+              )}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Embedded ReVive Hub View when ReVive Tab is Active */}
+      {activeNav === 'REVIVE' ? (
+        <ReViveHubPage
+          onOpenProductDetail={(prod) => {
+            setPassportProduct(prod);
+          }}
+        />
+      ) : (
+        <>
+          {/* ReVive Metrics Summary Card in Seller Dashboard */}
+          <div className="bg-gradient-to-br from-[#197B5B]/10 via-[#FFF9F1] to-white p-6 rounded-3xl border-2 border-[#197B5B]/30 flex flex-col justify-between space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs uppercase font-bold text-[#197B5B]">
+                    <Recycle className="w-4 h-4 text-[#197B5B]" />
+                    ReVive
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#197B5B] text-white">
+                    Circular Next Life
+                  </span>
+                </div>
+                <h3 className="font-serif-couture text-xl font-bold text-[#18212B] mt-1">
+                  Give Unused Garments Their Next Life
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Repair, donate, upcycle or recycle clothing concluding its rental journey.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setActiveNav('REVIVE')}
+                className="self-start sm:self-auto px-5 py-2.5 bg-[#197B5B] hover:bg-[#146349] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition"
+              >
+                <span>Open ReVive Hub</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs pt-1">
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-[#781F37] block">Items Needing Action</span>
+                <span className="font-serif-couture text-2xl font-bold text-[#781F37] block mt-0.5">
+                  {dashboardData.reviveMetrics?.itemsNeedingAction ?? 3}
+                </span>
+                <span className="text-[10px] text-stone-400">Needs next-life route</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-[#197B5B] block">Donations Completed</span>
+                <span className="font-serif-couture text-2xl font-bold text-[#197B5B] block mt-0.5">
+                  {dashboardData.reviveMetrics?.donationsCompleted ?? 14}
+                </span>
+                <span className="text-[10px] text-stone-400">Given to trusts & hostels</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-[#C89228] block">Recycling Active</span>
+                <span className="font-serif-couture text-2xl font-bold text-[#C89228] block mt-0.5">
+                  {dashboardData.reviveMetrics?.recyclingRequestsActive ?? 2}
+                </span>
+                <span className="text-[10px] text-stone-400">Hub passes in flight</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-amber-700 block">Recycler Earnings</span>
+                <span className="font-serif-couture text-2xl font-bold text-amber-800 block mt-0.5">
+                  ₹{(dashboardData.reviveMetrics?.recyclerEarnings ?? 420).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-stone-400">Wallet balance credited</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs col-span-2 sm:col-span-1">
+                <span className="text-[10px] uppercase font-bold text-blue-700 block">Repairs Relisted</span>
+                <span className="font-serif-couture text-2xl font-bold text-blue-800 block mt-0.5">
+                  {dashboardData.reviveMetrics?.repairsRelisted ?? 8}
+                </span>
+                <span className="text-[10px] text-stone-400">Restored to wardrobe</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metrics Row (Strict Separation of Escrow Deposit from Seller Revenue) */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Net Earnings */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
+              <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Net Earnings</span>
+              <span className="font-serif-couture text-2xl font-bold text-[#18212B] block mt-1">
+                ₹{metrics.totalNetEarnings.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[10px] text-[#197B5B] font-semibold">After 12% commission</span>
+            </div>
+
+            {/* Pending Payout */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
+              <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Pending Payout</span>
+              <span className="font-serif-couture text-2xl font-bold text-[#781F37] block mt-1">
+                ₹{metrics.pendingPayout.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[10px] text-stone-500">Scheduled to bank</span>
+            </div>
+
+            {/* Escrow Deposits Held (Liability Warning) */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
+              <span className="text-[10px] uppercase font-bold text-[#C89228] block">Deposits in Escrow</span>
+              <span className="font-serif-couture text-2xl font-bold text-[#C89228] block mt-1">
+                ₹{metrics.depositsHeldInEscrow.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[10px] text-stone-500">Held liability (Not revenue)</span>
+            </div>
+
+            {/* Active Rentals */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
+              <span className="text-[10px] uppercase font-bold text-[#6F747A] block">Active Rentals</span>
+              <span className="font-serif-couture text-2xl font-bold text-[#18212B] block mt-1">
+                {metrics.activeRentalsCount}
+              </span>
+              <span className="text-[10px] text-blue-600 font-semibold">Currently with renters</span>
+            </div>
+
+            {/* Inspection Queue */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E8E1D8]">
+              <span className="text-[10px] uppercase font-bold text-[#781F37] block">Inspection Queue</span>
+              <span className="font-serif-couture text-2xl font-bold text-[#781F37] block mt-1">
+                {metrics.inspectionQueueCount}
+              </span>
+              <span className="text-[10px] text-stone-500">Returns awaiting QC</span>
+            </div>
+          </div>
 
       {/* Return Inspection Queue Action Banner (Step 12 Demo Flow) */}
       {inspectionQueue && inspectionQueue.length > 0 && (
@@ -351,6 +480,34 @@ export const SellerDashboardPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3 text-right space-x-2">
+                    {/* ReVive Item CTA */}
+                    {p.condition === 'Fair' ||
+                    p.condition.toLowerCase().includes('damage') ||
+                    p.lifecycleStatus === 'IN_REPAIR' ||
+                    p.lifecycleStatus === 'INSPECTION_PENDING' ||
+                    p.lifecycleStatus === 'RETIRED' ||
+                    p.lifecycleStatus === 'DONATION_PENDING' ||
+                    p.lifecycleStatus === 'RECYCLER_QUOTE_RECEIVED' ||
+                    p.lifecycleStatus === 'UPCYCLING_PENDING' ||
+                    p.usageCount >= 25 ? (
+                      <button
+                        onClick={() => setReviveProduct(p)}
+                        className="px-2.5 py-1 bg-[#197B5B] hover:bg-[#146349] text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer inline-flex items-center gap-1"
+                        title="Give garment its next circular life"
+                      >
+                        <Recycle className="w-3 h-3" />
+                        <span>ReVive Item</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setReviveProduct(p)}
+                        className="px-2 py-1 bg-stone-100 hover:bg-[#197B5B]/10 hover:text-[#197B5B] text-stone-600 rounded-lg text-[11px] cursor-pointer"
+                        title="More actions: ReVive Item"
+                      >
+                        ReVive
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setPassportProduct(p)}
                       className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-[11px] font-medium cursor-pointer"
@@ -436,6 +593,8 @@ export const SellerDashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Add Listing Modal with AI Assistant */}
@@ -596,6 +755,17 @@ export const SellerDashboardPage: React.FC = () => {
         <DigitalPassportModal
           product={passportProduct}
           onClose={() => setPassportProduct(null)}
+        />
+      )}
+
+      {/* Guided ReVive Modal */}
+      {reviveProduct && (
+        <ReViveModal
+          product={reviveProduct}
+          onClose={() => setReviveProduct(null)}
+          onSuccess={() => {
+            fetchDashboard();
+          }}
         />
       )}
     </div>

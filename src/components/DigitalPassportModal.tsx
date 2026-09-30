@@ -144,6 +144,77 @@ export const DigitalPassportModal: React.FC<DigitalPassportModalProps> = ({ prod
               )}
             </div>
           </div>
+
+          {/* ReVive Journey Timeline Block */}
+          <div className="bg-white p-5 rounded-2xl border-2 border-[#197B5B]/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-[#197B5B]/15 text-[#197B5B] flex items-center justify-center">
+                  <Leaf className="w-3.5 h-3.5" />
+                </div>
+                <h4 className="text-xs uppercase tracking-wider font-bold text-[#18212B]">
+                  ReVive Journey
+                </h4>
+              </div>
+              <span className="text-[10px] text-[#197B5B] font-bold bg-[#197B5B]/10 px-2 py-0.5 rounded-full">
+                Next-Life Passport
+              </span>
+            </div>
+
+            {/* ReVive Journey Entries */}
+            <div className="space-y-3 relative pl-4 border-l-2 border-[#197B5B]/40 ml-2">
+              {/* Check if any specific ReVive events exist */}
+              {product.passportEvents && product.passportEvents.some(e => e.eventType.startsWith('REVIVE_') || e.reviveDetails) ? (
+                product.passportEvents
+                  .filter(e => e.eventType.startsWith('REVIVE_') || e.reviveDetails)
+                  .map(evt => (
+                    <div key={evt.id} className="relative">
+                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-[#197B5B] ring-4 ring-white" />
+                      <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-[#18212B] flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#197B5B] text-white">
+                              {evt.reviveDetails?.route || 'REVIVE'}
+                            </span>
+                            {evt.title}
+                          </span>
+                          <span className="text-stone-400 text-[11px] font-mono">{evt.date}</span>
+                        </div>
+                        <p className="text-xs text-stone-600 leading-relaxed">
+                          {evt.description}
+                        </p>
+                        {evt.reviveDetails?.partnerName && (
+                          <div className="pt-1 flex flex-wrap gap-2 text-[10px] text-stone-500">
+                            <span>Partner: <strong>{evt.reviveDetails.partnerName}</strong></span>
+                            {evt.reviveDetails.weightKg && (
+                              <span>· Weight: <strong>{evt.reviveDetails.weightKg} kg</strong></span>
+                            )}
+                            {evt.reviveDetails.payoutAmount && (
+                              <span className="text-emerald-700 font-bold">· Payout: ₹{evt.reviveDetails.payoutAmount}</span>
+                            )}
+                            {evt.reviveDetails.receiptId && (
+                              <span className="font-mono">· Receipt: {evt.reviveDetails.receiptId}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-xs text-stone-500 space-y-2 py-1">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <span className="font-semibold text-[#18212B] block mb-0.5">
+                      Next-Life Ready
+                    </span>
+                    <p className="text-[11px] text-stone-600">
+                      When this piece reaches retirement or fair condition, ReVive enables:
+                      Repaired and relisted · Donation scheduled · Donated for reuse · Recycler quote requested · Recycler payout recorded · Upcycling request submitted · Upcycled · Responsible disposal confirmed.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}

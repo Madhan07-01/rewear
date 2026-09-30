@@ -12,6 +12,7 @@ import chatRouter from './server/routes/chat';
 import sellerRouter from './server/routes/seller';
 import adminRouter from './server/routes/admin';
 import demoRouter from './server/routes/demo';
+import reviveRouter from './server/routes/revive';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,7 @@ async function createServer() {
   app.use('/api/seller', sellerRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/demo', demoRouter);
+  app.use('/api/revive', reviveRouter);
 
   // Health check
   app.get('/api/health', (req, res) => {

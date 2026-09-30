@@ -9,7 +9,11 @@ import {
   TryOnJob,
   OrderStatus,
   DepositStatus,
-  ProductCondition
+  ProductCondition,
+  ReVivePartner,
+  ReViveRequest,
+  ReViveLiveActivity,
+  ReViveMetrics
 } from './types';
 import {
   INITIAL_PRODUCTS,
@@ -18,7 +22,11 @@ import {
   INITIAL_DEPOSITS,
   INITIAL_DISPUTES,
   INITIAL_POLICY,
-  INITIAL_AUDIT_LOGS
+  INITIAL_AUDIT_LOGS,
+  INITIAL_REVIVE_PARTNERS,
+  INITIAL_REVIVE_REQUESTS,
+  INITIAL_REVIVE_ACTIVITIES,
+  INITIAL_REVIVE_METRICS
 } from './data';
 
 class DataStore {
@@ -30,6 +38,10 @@ class DataStore {
   private policy: PolicyConfig = { ...INITIAL_POLICY };
   private auditLogs: AuditLogEntry[] = [];
   private tryOnJobs: Map<string, TryOnJob> = new Map();
+  private revivePartners: ReVivePartner[] = [];
+  private reviveRequests: ReViveRequest[] = [];
+  private reviveActivities: ReViveLiveActivity[] = [];
+  private reviveMetrics: ReViveMetrics = { ...INITIAL_REVIVE_METRICS };
 
   constructor() {
     this.reset();
@@ -43,6 +55,10 @@ class DataStore {
     this.disputes = JSON.parse(JSON.stringify(INITIAL_DISPUTES));
     this.policy = JSON.parse(JSON.stringify(INITIAL_POLICY));
     this.auditLogs = JSON.parse(JSON.stringify(INITIAL_AUDIT_LOGS));
+    this.revivePartners = JSON.parse(JSON.stringify(INITIAL_REVIVE_PARTNERS));
+    this.reviveRequests = JSON.parse(JSON.stringify(INITIAL_REVIVE_REQUESTS));
+    this.reviveActivities = JSON.parse(JSON.stringify(INITIAL_REVIVE_ACTIVITIES));
+    this.reviveMetrics = JSON.parse(JSON.stringify(INITIAL_REVIVE_METRICS));
     this.tryOnJobs.clear();
   }
 
@@ -537,6 +553,341 @@ class DataStore {
   public getTryOnJob(id: string): TryOnJob | undefined {
     return this.tryOnJobs.get(id);
   }
+
+  // --- ReVive Circular Next-Life Platform ---
+  public getReVivePartners(type?: string, city?: string): ReVivePartner[] {
+    return this.revivePartners.filter(p => {
+      if (type && type !== 'ALL' && p.partnerType !== type) return false;
+      if (city && p.city.toLowerCase() !== city.toLowerCase()) return false;
+      return true;
+    });
+  }
+
+  public getReVivePartnerById(id: string): ReVivePartner | undefined {
+    return this.revivePartners.find(p => p.id === id);
+  }
+
+  public getReViveRequests(sellerId?: string): ReViveRequest[] {
+    if (sellerId) {
+      return this.reviveRequests.filter(r => r.sellerId === sellerId);
+    }
+    return this.reviveRequests;
+  }
+
+  public getReViveRequestById(id: string): ReViveRequest | undefined {
+    return this.reviveRequests.find(r => r.id === id);
+  }
+
+  public createReViveRequest(data: Partial<ReViveRequest>): ReViveRequest {
+    const id = `rev_req_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const product = this.getProductById(data.productId || '');
+    if (!product) throw new Error('Product not found for ReVive request');
+
+    const partner = data.partnerId ? this.getReVivePartnerById(data.partnerId) : undefined;
+
+    const newReq: ReViveRequest = {
+      id,
+      productId: product.id,
+      productTitle: product.title,
+      productCode: product.productCode,
+      productImage: product.images[0] || '',
+      sellerId: data.sellerId || product.sellerId,
+      sellerName: data.sellerName || product.sellerName,
+      route: data.route || 'DONATE',
+      status: data.status || 'ASSESSMENT_PENDING',
+      partnerId: partner?.id,
+      partnerName: partner?.name,
+      partnerType: partner?.partnerType,
+      scheduledAt: data.scheduledAt || new Date(Date.now() + 86400000).toISOString(),
+      handoverMethod: data.handoverMethod || 'PICKUP',
+      weightKg: data.weightKg || product.estimatedWeightKg || 1.0,
+      recyclerPayoutEstimate: data.recyclerPayoutEstimate,
+      repairCostEstimate: data.repairCostEstimate,
+      repairDescription: data.repairDescription,
+      condition: data.condition || product.condition,
+      notes: data.notes || '',
+      evidencePhotos: data.evidencePhotos || product.images,
+      qrCode: `REVIVE-${data.route}-${product.productCode}-${Math.floor(100000 + Math.random() * 900000)}`,
+      otp: `${Math.floor(100000 + Math.random() * 900000)}`,
+      createdAt: new Date().toISOString()
+    };
+
+    this.reviveRequests.unshift(newReq);
+
+    // Update product lifecycle status
+    if (newReq.route === 'DONATE') {
+      product.lifecycleStatus = 'DONATION_SCHEDULED';
+      product.recommendedNextLife = 'DONATE';
+    } else if (newReq.route === 'RECYCLE') {
+      product.lifecycleStatus = 'RECYCLING_SCHEDULED';
+      product.recommendedNextLife = 'RECYCLE';
+      this.reviveMetrics.recyclingRequestsActive += 1;
+    } else if (newReq.route === 'UPCYCLE') {
+      product.lifecycleStatus = 'UPCYCLING_PENDING';
+      product.recommendedNextLife = 'UPCYCLE';
+    } else if (newReq.route === 'REPAIR') {
+      product.lifecycleStatus = 'IN_REPAIR';
+      product.recommendedNextLife = 'REPAIR';
+    } else if (newReq.route === 'RETIRE') {
+      product.lifecycleStatus = 'RESPONSIBLE_DISPOSAL_PENDING';
+      product.recommendedNextLife = 'RETIRE';
+    }
+
+    this.addAuditLog(
+      'REVIVE_REQUEST_CREATED',
+      'REVIVE',
+      newReq.id,
+      newReq.sellerName,
+      `ReVive request submitted for ${product.title} (${product.productCode}) under route: ${newReq.route}. Partner: ${partner?.name || 'Pending assignment'}.`
+    );
+
+    return newReq;
+  }
+
+  public updateReViveRequest(id: string, updates: Partial<ReViveRequest>): ReViveRequest {
+    const req = this.getReViveRequestById(id);
+    if (!req) throw new Error('ReVive request not found');
+
+    Object.assign(req, updates);
+
+    this.addAuditLog(
+      'REVIVE_REQUEST_UPDATED',
+      'REVIVE',
+      req.id,
+      req.sellerName,
+      `ReVive request ${req.id} updated to status ${req.status}.`
+    );
+
+    return req;
+  }
+
+  public confirmReViveOutcome(
+    id: string,
+    outcome: {
+      finalWeightKg?: number;
+      finalPayout?: number;
+      receiptId?: string;
+      certificateId?: string;
+      relistCondition?: ProductCondition;
+      relistPrice?: number;
+      notes?: string;
+    }
+  ): { request: ReViveRequest; product: Product } {
+    const req = this.getReViveRequestById(id);
+    if (!req) throw new Error('ReVive request not found');
+
+    const product = this.getProductById(req.productId);
+    if (!product) throw new Error('Product not found for ReVive confirmation');
+
+    const now = new Date().toISOString();
+    const dateFormatted = now.split('T')[0];
+
+    req.completedAt = now;
+    if (outcome.notes) req.notes = `${req.notes ? req.notes + ' · ' : ''}${outcome.notes}`;
+
+    if (req.route === 'DONATE') {
+      req.status = 'DONATED';
+      req.receiptId = outcome.receiptId || `DON-REC-${Math.floor(1000 + Math.random() * 9000)}`;
+      product.lifecycleStatus = 'DONATED';
+      this.reviveMetrics.donationsCompleted += 1;
+      this.reviveMetrics.textileDivertedKg += (req.weightKg || 1.0);
+      this.reviveMetrics.communityReuseEvents += 1;
+
+      product.passportEvents.push({
+        id: `evt_rev_${Date.now()}`,
+        date: dateFormatted,
+        eventType: 'REVIVE_DONATED',
+        title: 'Donated for Community Reuse',
+        description: `Delivered to verified partner ${req.partnerName || 'Community Trust'}. Receipt: ${req.receiptId}. Renter acknowledged with warm thanks.`,
+        reviveDetails: {
+          route: 'DONATE',
+          partnerName: req.partnerName,
+          partnerType: req.partnerType,
+          receiptId: req.receiptId,
+          weightKg: req.weightKg
+        }
+      });
+
+      this.addReViveActivity({
+        id: `act_${Date.now()}`,
+        type: 'DONATION',
+        productTitle: product.title,
+        productCode: product.productCode,
+        partnerName: req.partnerName || 'Community Partner',
+        statusText: `Your item was successfully donated to ${req.partnerName}.`,
+        badgeText: 'Donated',
+        badgeColor: 'emerald',
+        timeAgo: 'Just now',
+        details: `Receipt #${req.receiptId} confirmed. Garment gifted for community empowerment.`,
+        ctaText: 'View Receipt'
+      });
+    } else if (req.route === 'RECYCLE') {
+      req.status = 'RECYCLED';
+      req.weightKg = outcome.finalWeightKg || req.weightKg || 1.2;
+      req.recyclerFinalPayout = outcome.finalPayout !== undefined ? outcome.finalPayout : (req.recyclerPayoutEstimate || 36);
+      req.receiptId = outcome.receiptId || `RWH-REC-${Math.floor(1000 + Math.random() * 9000)}`;
+      req.certificateId = outcome.certificateId || `CERT-ECO-${Math.floor(1000 + Math.random() * 9000)}`;
+      product.lifecycleStatus = 'RECYCLED';
+
+      this.reviveMetrics.recyclingRequestsActive = Math.max(0, this.reviveMetrics.recyclingRequestsActive - 1);
+      this.reviveMetrics.recyclerEarnings += req.recyclerFinalPayout;
+      this.reviveMetrics.textileDivertedKg += req.weightKg;
+
+      product.passportEvents.push({
+        id: `evt_rev_${Date.now()}`,
+        date: dateFormatted,
+        eventType: 'REVIVE_RECYCLED',
+        title: 'Textile Material Recovery Confirmed',
+        description: `Verified weight: ${req.weightKg} kg. Certificate: ${req.certificateId}. Mock recycler payout of ₹${req.recyclerFinalPayout} recorded.`,
+        reviveDetails: {
+          route: 'RECYCLE',
+          partnerName: req.partnerName,
+          partnerType: 'RECYCLING_HUB',
+          weightKg: req.weightKg,
+          payoutAmount: req.recyclerFinalPayout,
+          receiptId: req.receiptId
+        }
+      });
+
+      this.addReViveActivity({
+        id: `act_${Date.now()}`,
+        type: 'RECYCLING',
+        productTitle: product.title,
+        productCode: product.productCode,
+        partnerName: req.partnerName || 'EcoTex Hub',
+        statusText: `Mock recycler payout of ₹${req.recyclerFinalPayout} recorded.`,
+        badgeText: `₹${req.recyclerFinalPayout} Earned`,
+        badgeColor: 'emerald',
+        timeAgo: 'Just now',
+        details: `${req.weightKg} kg fibers recovered. Certificate #${req.certificateId}.`,
+        ctaText: 'View Certificate'
+      });
+    } else if (req.route === 'UPCYCLE') {
+      req.status = 'UPCYCLED';
+      product.lifecycleStatus = 'UPCYCLED';
+      this.reviveMetrics.garmentsUpcycled += 1;
+      this.reviveMetrics.textileDivertedKg += (req.weightKg || 1.5);
+
+      product.passportEvents.push({
+        id: `evt_rev_${Date.now()}`,
+        date: dateFormatted,
+        eventType: 'REVIVE_UPCYCLED',
+        title: 'Upcycled into Heirloom Accessories',
+        description: `Transformed by ${req.partnerName || 'Upcycling Atelier'} into artisanal accessories and home decor. Zero waste achieved.`,
+        reviveDetails: {
+          route: 'UPCYCLE',
+          partnerName: req.partnerName,
+          partnerType: 'UPCYCLE_STUDIO',
+          weightKg: req.weightKg
+        }
+      });
+
+      this.addReViveActivity({
+        id: `act_${Date.now()}`,
+        type: 'UPCYCLING',
+        productTitle: product.title,
+        productCode: product.productCode,
+        partnerName: req.partnerName || 'Heritage Atelier',
+        statusText: `Your upcycling request completed: handcrafted potlis created.`,
+        badgeText: 'Upcycled',
+        badgeColor: 'purple',
+        timeAgo: 'Just now',
+        details: 'Heirloom brocade converted into 6 artisanal potli clutches.',
+        ctaText: 'View Craft Story'
+      });
+    } else if (req.route === 'REPAIR') {
+      req.status = 'RELISTED';
+      product.lifecycleStatus = 'AVAILABLE';
+      product.condition = outcome.relistCondition || 'Good';
+      product.repairsCount = (product.repairsCount || 0) + 1;
+      if (outcome.relistPrice) product.rentalPrice3Days = outcome.relistPrice;
+      this.reviveMetrics.repairsRelisted += 1;
+
+      product.passportEvents.push({
+        id: `evt_rev_${Date.now()}`,
+        date: dateFormatted,
+        eventType: 'REVIVE_REPAIRED_RELISTED',
+        title: 'Repaired & Relisted for Next Life',
+        description: `Restored by master tailor. Seams reinforced and dry-cleaned. Returned to active circular inventory in ${product.condition} condition.`,
+        reviveDetails: {
+          route: 'REPAIR',
+          repairCost: req.repairCostEstimate || 250
+        }
+      });
+
+      this.addReViveActivity({
+        id: `act_${Date.now()}`,
+        type: 'REPAIR',
+        productTitle: product.title,
+        productCode: product.productCode,
+        partnerName: 'Master Darzi Atelier',
+        statusText: `Your ${product.title} was repaired and relisted to your wardrobe.`,
+        badgeText: 'Relisted',
+        badgeColor: 'blue',
+        timeAgo: 'Just now',
+        details: `Condition upgraded to ${product.condition}. Live in wardrobe catalog.`,
+        ctaText: 'View Listing'
+      });
+    } else if (req.route === 'RETIRE') {
+      req.status = 'RETIRED';
+      product.lifecycleStatus = 'RETIRED';
+
+      product.passportEvents.push({
+        id: `evt_rev_${Date.now()}`,
+        date: dateFormatted,
+        eventType: 'REVIVE_RETIRED',
+        title: 'Responsible End-of-Life Retirement',
+        description: `Garment honorably retired after ${product.usageCount} circular wears. Eco-safe materials segregated.`,
+        reviveDetails: {
+          route: 'RETIRE'
+        }
+      });
+    }
+
+    this.addAuditLog(
+      'REVIVE_OUTCOME_CONFIRMED',
+      'REVIVE',
+      req.id,
+      req.sellerName,
+      `ReVive outcome confirmed for ${product.title} (${product.productCode}) under route: ${req.route}. Status: ${req.status}.`
+    );
+
+    return { request: req, product };
+  }
+
+  public getReViveMetrics(sellerId?: string): ReViveMetrics {
+    const productsNeedingAction = this.products.filter(p => {
+      if (sellerId && p.sellerId !== sellerId) return false;
+      return (
+        p.condition === 'Fair' ||
+        p.condition === 'Damaged' ||
+        p.condition === 'Minor damage' ||
+        p.condition === 'Major damage' ||
+        p.lifecycleStatus === 'INSPECTION_PENDING' ||
+        p.lifecycleStatus === 'IN_REPAIR' ||
+        p.lifecycleStatus === 'DONATION_PENDING' ||
+        p.lifecycleStatus === 'RECYCLER_QUOTE_RECEIVED' ||
+        p.lifecycleStatus === 'UPCYCLING_PENDING'
+      );
+    });
+
+    return {
+      ...this.reviveMetrics,
+      itemsNeedingAction: productsNeedingAction.length
+    };
+  }
+
+  public getReViveActivities(): ReViveLiveActivity[] {
+    return this.reviveActivities;
+  }
+
+  public addReViveActivity(activity: ReViveLiveActivity) {
+    this.reviveActivities.unshift(activity);
+    if (this.reviveActivities.length > 20) {
+      this.reviveActivities.pop();
+    }
+  }
 }
 
 export const store = new DataStore();
+

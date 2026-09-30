@@ -3,6 +3,7 @@ import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { DigitalPassportModal } from '../components/DigitalPassportModal';
 import { AiFitPreviewModal } from '../components/AiFitPreviewModal';
+import { ReViveModal } from '../components/ReViveModal';
 import {
   Sparkles,
   ShieldCheck,
@@ -16,7 +17,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Share2,
-  ArrowLeft
+  ArrowLeft,
+  Recycle,
+  Scissors,
+  HeartHandshake,
+  Layers
 } from 'lucide-react';
 
 interface ProductDetailPageProps {
@@ -32,12 +37,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onStartCheckout,
   initialAction
 }) => {
-  const { savedProductIds, toggleSaveProduct } = useAuth();
+  const { savedProductIds, toggleSaveProduct, currentUser } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showPassport, setShowPassport] = useState(false);
   const [showTryOn, setShowTryOn] = useState(initialAction === 'tryon');
+  const [showReViveModal, setShowReViveModal] = useState(initialAction === 'revive');
+  const [reviveInitialRoute, setReviveInitialRoute] = useState<'REPAIR' | 'DONATE' | 'UPCYCLE' | 'RECYCLE' | 'RETIRE'>('DONATE');
   const [selectedSize, setSelectedSize] = useState<string>('M');
 
   useEffect(() => {
@@ -256,6 +263,90 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </button>
           </div>
 
+          {/* Next Life with ReVive Section */}
+          <div className="p-5 bg-white rounded-2xl border-2 border-[#197B5B]/30 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#197B5B]/15 text-[#197B5B] flex items-center justify-center font-bold">
+                  <Recycle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs uppercase tracking-wider font-bold text-[#18212B]">
+                    Next Life with ReVive
+                  </h4>
+                  <p className="text-[11px] text-[#6F747A]">
+                    Extend this garment’s circular lifecycle beyond rental.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-[#197B5B] bg-[#197B5B]/10 px-2 py-0.5 rounded-full uppercase">
+                ReVive Active
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setReviveInitialRoute('REPAIR');
+                  setShowReViveModal(true);
+                }}
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:border-[#781F37] hover:text-[#781F37] hover:bg-white transition text-center cursor-pointer shadow-2xs"
+              >
+                <Scissors className="w-4 h-4 mx-auto mb-1 text-[#781F37]" />
+                <span className="font-semibold block text-[11px]">Repair & Relist</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setReviveInitialRoute('DONATE');
+                  setShowReViveModal(true);
+                }}
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:border-[#197B5B] hover:text-[#197B5B] hover:bg-white transition text-center cursor-pointer shadow-2xs"
+              >
+                <HeartHandshake className="w-4 h-4 mx-auto mb-1 text-[#197B5B]" />
+                <span className="font-semibold block text-[11px]">Donate</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setReviveInitialRoute('UPCYCLE');
+                  setShowReViveModal(true);
+                }}
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:border-purple-600 hover:text-purple-700 hover:bg-white transition text-center cursor-pointer shadow-2xs"
+              >
+                <Layers className="w-4 h-4 mx-auto mb-1 text-purple-600" />
+                <span className="font-semibold block text-[11px]">Upcycle</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setReviveInitialRoute('RECYCLE');
+                  setShowReViveModal(true);
+                }}
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:border-amber-600 hover:text-amber-700 hover:bg-white transition text-center cursor-pointer shadow-2xs"
+              >
+                <Recycle className="w-4 h-4 mx-auto mb-1 text-amber-600" />
+                <span className="font-semibold block text-[11px]">Sell to Recycler</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setReviveInitialRoute('RETIRE');
+                  setShowReViveModal(true);
+                }}
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:border-stone-500 hover:text-stone-800 hover:bg-white transition text-center cursor-pointer shadow-2xs col-span-2 sm:col-span-1"
+              >
+                <Shirt className="w-4 h-4 mx-auto mb-1 text-stone-500" />
+                <span className="font-semibold block text-[11px]">Retire Item</span>
+              </button>
+            </div>
+          </div>
+
           {/* Action CTAs */}
           <div className="pt-2 flex flex-col sm:flex-row gap-3">
             <button
@@ -309,6 +400,22 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           onSelectSize={(s) => {
             setSelectedSize(s);
             onStartCheckout(product);
+          }}
+        />
+      )}
+
+      {/* Guided ReVive Modal */}
+      {showReViveModal && (
+        <ReViveModal
+          product={product}
+          initialRoute={reviveInitialRoute}
+          onClose={() => setShowReViveModal(false)}
+          onSuccess={() => {
+            fetch(`/api/products/${productId}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.product) setProduct(data.product);
+              });
           }}
         />
       )}

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Heart, Sparkles, MapPin, ShieldCheck, Shirt, Clock } from 'lucide-react';
+import { Heart, Sparkles, MapPin, ShieldCheck, Shirt, Clock, Recycle, MoreVertical } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -10,6 +10,7 @@ interface ProductCardProps {
   matchReason?: string;
   onSelect: (product: Product) => void;
   onOpenPassport?: (product: Product) => void;
+  onOpenReVive?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -18,10 +19,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   fitConfidence,
   matchReason,
   onSelect,
-  onOpenPassport
+  onOpenPassport,
+  onOpenReVive
 }) => {
-  const { savedProductIds, toggleSaveProduct } = useAuth();
+  const { savedProductIds, toggleSaveProduct, currentRole } = useAuth();
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const isSaved = savedProductIds.includes(product.id);
+
+  const conditionLower = product.condition.toLowerCase();
+  const isReViveCandidate =
+    conditionLower.includes('damage') ||
+    conditionLower === 'fair' ||
+    product.lifecycleStatus === 'IN_REPAIR' ||
+    product.lifecycleStatus === 'INSPECTION_PENDING' ||
+    product.lifecycleStatus === 'RETIRED' ||
+    product.usageCount >= 25;
 
   return (
     <div className="group bg-white rounded-2xl border border-[#E8E1D8] overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col">
@@ -128,7 +140,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Card Actions */}
-        <div className="mt-4 pt-3 flex items-center gap-2">
+        <div className="mt-4 pt-3 flex items-center gap-2 relative">
           {onOpenPassport && (
             <button
               onClick={() => onOpenPassport(product)}
@@ -140,12 +152,51 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => onSelect(product)}
-            className="flex-1 py-1.5 px-3 bg-[#781F37] hover:bg-[#5E182B] text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer text-center"
-          >
-            Reserve Outfit
-          </button>
+          {/* Primary ReVive CTA for Fair / Damaged / Inspection / Retired */}
+          {isReViveCandidate && onOpenReVive ? (
+            <button
+              onClick={() => onOpenReVive(product)}
+              className="flex-1 py-1.5 px-3 bg-[#197B5B] hover:bg-[#146349] text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer text-center flex items-center justify-center gap-1.5"
+            >
+              <Recycle className="w-3.5 h-3.5" />
+              <span>ReVive Item</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onSelect(product)}
+              className="flex-1 py-1.5 px-3 bg-[#781F37] hover:bg-[#5E182B] text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer text-center"
+            >
+              Reserve Outfit
+            </button>
+          )}
+
+          {/* Overflow Menu for actions including ReVive */}
+          {onOpenReVive && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-1.5 text-stone-500 hover:text-black rounded-lg hover:bg-stone-100 transition cursor-pointer"
+                title="More actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {showMoreMenu && (
+                <div className="absolute right-0 bottom-full mb-1 z-20 bg-white rounded-xl shadow-lg border border-[#E8E1D8] p-1.5 min-w-[140px] text-xs animate-fade-in">
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      onOpenReVive(product);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#197B5B]/10 hover:text-[#197B5B] flex items-center gap-2 cursor-pointer font-medium"
+                  >
+                    <Recycle className="w-3.5 h-3.5 text-[#197B5B]" />
+                    <span>ReVive Item</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

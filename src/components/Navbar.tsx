@@ -20,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate, onOpenL
     { label: 'AI Fit Studio', path: '/tryon', icon: Sparkles, highlight: true },
     { label: 'My Rentals', path: '/my-rentals', role: 'CUSTOMER' },
     { label: 'Seller Console', path: '/seller', role: ['B2C_SELLER', 'B2B_SELLER'] },
+    { label: '♻ ReVive Hub', path: '/revive', role: ['B2C_SELLER', 'B2B_SELLER', 'ADMIN'] },
     { label: 'Admin Governance', path: '/admin', role: 'ADMIN' },
   ];
 

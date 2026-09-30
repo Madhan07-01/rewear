@@ -66,6 +66,9 @@ router.get('/dashboard', (req, res) => {
     { id: 'stf_2', name: 'Karthik S. (Sanitization & QC)', role: 'QC & Logistics', active: true }
   ];
 
+  const reviveMetrics = store.getReViveMetrics(sellerId);
+  const reviveActivities = store.getReViveActivities();
+
   res.json({
     metrics: {
       totalNetEarnings,
@@ -83,7 +86,9 @@ router.get('/dashboard', (req, res) => {
     recentOrders: sellerOrders.slice(0, 8),
     inspectionQueue,
     membershipPlans,
-    staffAccounts
+    staffAccounts,
+    reviveMetrics,
+    reviveActivities
   });
 });
 
